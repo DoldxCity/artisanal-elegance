@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/data/products";
+import { formatPrice } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
 import { X, Minus, Plus, Trash2, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProductImage } from "@/lib/images";
+import { toast } from "sonner";
 
 const CartDrawer = () => {
   const {
@@ -14,29 +17,63 @@ const CartDrawer = () => {
     setIsCartOpen,
     clearCart,
   } = useCart();
+  const [clientName, setClientName] = useState("");
+  const [showCheckout, setShowCheckout] = useState(false);
 
-  const sendToWhatsApp = () => {
+  const handleFinalize = async () => {
+    if (!clientName.trim()) {
+      toast.error("Por favor ingresa tu nombre");
+      return;
+    }
+
+    // Save order to database
+    const { data: pedido, error: pedidoError } = await supabase
+      .from("pedidos")
+      .insert({ cliente_nombre: clientName.trim(), total: totalPrice })
+      .select("id")
+      .single();
+
+    if (pedidoError || !pedido) {
+      toast.error("Error al crear pedido");
+      return;
+    }
+
+    const detalles = items.map((i) => ({
+      pedido_id: (pedido as unknown as { id: string }).id,
+      producto_id: i.product.id,
+      cantidad: i.quantity,
+      precio_unitario: i.product.precio,
+    }));
+
+    await supabase.from("detalle_pedido").insert(detalles);
+
+    // Send to WhatsApp
     const message = items
       .map(
         (i) =>
-          `• ${i.product.name} x${i.quantity} — ${formatPrice(
-            i.product.price * i.quantity
+          `• ${i.product.nombre} x${i.quantity} — ${formatPrice(
+            i.product.precio * i.quantity
           )}`
       )
       .join("\n");
 
     const total = formatPrice(totalPrice);
     const text = encodeURIComponent(
-      `¡Hola! Me gustaría realizar el siguiente pedido:\n\n${message}\n\n*Total: ${total}*\n\n¡Gracias!`
+      `¡Hola! Soy ${clientName.trim()}.\n\nMe gustaría realizar el siguiente pedido:\n\n${message}\n\n*Total: ${total}*\n\n¡Gracias!`
     );
     window.open(`https://wa.me/573001234567?text=${text}`, "_blank");
+
+    clearCart();
+    setClientName("");
+    setShowCheckout(false);
+    setIsCartOpen(false);
+    toast.success("¡Pedido enviado!");
   };
 
   return (
     <AnimatePresence>
       {isCartOpen && (
         <>
-          {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -45,7 +82,6 @@ const CartDrawer = () => {
             onClick={() => setIsCartOpen(false)}
           />
 
-          {/* Drawer */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -53,7 +89,6 @@ const CartDrawer = () => {
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 h-full w-full max-w-md bg-background z-50 shadow-2xl flex flex-col"
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <h2 className="font-display text-lg">Tu Carrito</h2>
               <button
@@ -64,7 +99,6 @@ const CartDrawer = () => {
               </button>
             </div>
 
-            {/* Items */}
             <div className="flex-1 overflow-y-auto p-6">
               {items.length === 0 ? (
                 <p className="text-center text-muted-foreground font-body text-sm mt-12">
@@ -73,47 +107,29 @@ const CartDrawer = () => {
               ) : (
                 <div className="space-y-6">
                   {items.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="flex gap-4"
-                    >
+                    <div key={item.product.id} className="flex gap-4">
                       <img
-                        src={getProductImage(item.product.image)}
-                        alt={item.product.name}
+                        src={item.product.imagen_url || getProductImage("product-1")}
+                        alt={item.product.nombre}
                         className="w-20 h-20 object-cover rounded-sm"
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-body text-sm font-medium text-foreground truncate">
-                          {item.product.name}
+                          {item.product.nombre}
                         </h3>
                         <p className="font-body text-sm text-accent mt-0.5">
-                          {formatPrice(item.product.price)}
+                          {formatPrice(item.product.precio)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.product.id,
-                                item.quantity - 1
-                              )
-                            }
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <Minus size={14} />
                           </button>
-                          <span className="font-body text-sm w-6 text-center">
-                            {item.quantity}
-                          </span>
+                          <span className="font-body text-sm w-6 text-center">{item.quantity}</span>
                           <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.product.id,
-                                Math.min(
-                                  item.quantity + 1,
-                                  item.product.stock
-                                )
-                              )
-                            }
+                            onClick={() => updateQuantity(item.product.id, Math.min(item.quantity + 1, item.product.cantidad))}
                             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <Plus size={14} />
@@ -132,24 +148,39 @@ const CartDrawer = () => {
               )}
             </div>
 
-            {/* Footer */}
             {items.length > 0 && (
               <div className="p-6 border-t border-border space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="font-body text-sm text-muted-foreground">
-                    Total
-                  </span>
-                  <span className="font-display text-lg text-foreground">
-                    {formatPrice(totalPrice)}
-                  </span>
+                  <span className="font-body text-sm text-muted-foreground">Total</span>
+                  <span className="font-display text-lg text-foreground">{formatPrice(totalPrice)}</span>
                 </div>
-                <button
-                  onClick={sendToWhatsApp}
-                  className="w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground py-3 rounded-sm font-body text-sm font-medium tracking-wider uppercase hover:opacity-90 transition-opacity"
-                >
-                  <MessageCircle size={18} />
-                  Enviar Pedido por WhatsApp
-                </button>
+
+                {showCheckout ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Tu nombre *"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="w-full px-4 py-3 bg-secondary text-foreground placeholder:text-muted-foreground rounded-sm font-body text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                    <button
+                      onClick={handleFinalize}
+                      className="w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground py-3 rounded-sm font-body text-sm font-medium tracking-wider uppercase hover:opacity-90 transition-opacity"
+                    >
+                      <MessageCircle size={18} />
+                      Enviar Pedido por WhatsApp
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowCheckout(true)}
+                    className="w-full bg-primary text-primary-foreground py-3 rounded-sm font-body text-sm font-medium tracking-wider uppercase hover:opacity-90 transition-opacity"
+                  >
+                    Finalizar Compra
+                  </button>
+                )}
+
                 <button
                   onClick={clearCart}
                   className="w-full text-center text-muted-foreground font-body text-xs hover:text-foreground transition-colors"

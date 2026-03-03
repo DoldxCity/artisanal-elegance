@@ -14,16 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      detalle_pedido: {
+        Row: {
+          cantidad: number
+          id: string
+          pedido_id: string
+          precio_unitario: number
+          producto_id: string
+        }
+        Insert: {
+          cantidad: number
+          id?: string
+          pedido_id: string
+          precio_unitario: number
+          producto_id: string
+        }
+        Update: {
+          cantidad?: number
+          id?: string
+          pedido_id?: string
+          precio_unitario?: number
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detalle_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detalle_pedido_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente_nombre: string
+          cliente_telefono: string | null
+          created_at: string
+          estado: string
+          id: string
+          total: number
+        }
+        Insert: {
+          cliente_nombre: string
+          cliente_telefono?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          total: number
+        }
+        Update: {
+          cliente_nombre?: string
+          cliente_telefono?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          total?: number
+        }
+        Relationships: []
+      }
+      productos: {
+        Row: {
+          cantidad: number
+          categoria: string
+          created_at: string
+          descripcion: string
+          id: string
+          imagen_url: string | null
+          nombre: string
+          porcentaje_descuento: number
+          precio: number
+          precio_original: number | null
+          promocion: boolean
+          updated_at: string
+        }
+        Insert: {
+          cantidad?: number
+          categoria?: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          imagen_url?: string | null
+          nombre: string
+          porcentaje_descuento?: number
+          precio: number
+          precio_original?: number | null
+          promocion?: boolean
+          updated_at?: string
+        }
+        Update: {
+          cantidad?: number
+          categoria?: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          imagen_url?: string | null
+          nombre?: string
+          porcentaje_descuento?: number
+          precio?: number
+          precio_original?: number | null
+          promocion?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +284,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

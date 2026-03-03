@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { Product } from "@/data/products";
+import type { Producto } from "@/types/database";
 
 export type CartItem = {
-  product: Product;
+  product: Producto;
   quantity: number;
 };
 
 type CartContextType = {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: Producto) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -24,13 +24,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addItem = useCallback((product: Product) => {
+  const addItem = useCallback((product: Producto) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
         return prev.map((i) =>
           i.product.id === product.id
-            ? { ...i, quantity: Math.min(i.quantity + 1, product.stock) }
+            ? { ...i, quantity: Math.min(i.quantity + 1, product.cantidad) }
             : i
         );
       }
@@ -59,7 +59,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce(
-    (sum, i) => sum + i.product.price * i.quantity,
+    (sum, i) => sum + i.product.precio * i.quantity,
     0
   );
 
