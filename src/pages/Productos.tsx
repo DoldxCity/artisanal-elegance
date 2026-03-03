@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
-import { products, categories } from "@/data/products";
+import { useProductos, useCategorias } from "@/hooks/useProductos";
 import ProductCard from "@/components/ProductCard";
 import { motion } from "framer-motion";
 
 const Productos = () => {
+  const { data: products = [], isLoading } = useProductos();
+  const { data: categories = ["Todos"] } = useCategorias();
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"default" | "price-asc" | "price-desc">("default");
@@ -11,17 +13,25 @@ const Productos = () => {
   const filtered = useMemo(() => {
     let result = products;
     if (selectedCategory !== "Todos") {
-      result = result.filter((p) => p.category === selectedCategory);
+      result = result.filter((p) => p.categoria === selectedCategory);
     }
     if (searchTerm) {
       result = result.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    if (sortBy === "price-asc") result = [...result].sort((a, b) => a.price - b.price);
-    if (sortBy === "price-desc") result = [...result].sort((a, b) => b.price - a.price);
+    if (sortBy === "price-asc") result = [...result].sort((a, b) => a.precio - b.precio);
+    if (sortBy === "price-desc") result = [...result].sort((a, b) => b.precio - a.precio);
     return result;
-  }, [selectedCategory, searchTerm, sortBy]);
+  }, [products, selectedCategory, searchTerm, sortBy]);
+
+  if (isLoading) {
+    return (
+      <main className="container mx-auto px-4 py-20 text-center">
+        <p className="font-body text-sm text-muted-foreground">Cargando productos...</p>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 py-12">
@@ -38,7 +48,6 @@ const Productos = () => {
         </p>
       </motion.div>
 
-      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 mb-10">
         <input
           type="text"
@@ -73,7 +82,6 @@ const Productos = () => {
         </select>
       </div>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <p className="text-center text-muted-foreground font-body text-sm py-20">
           No se encontraron productos

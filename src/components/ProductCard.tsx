@@ -1,16 +1,17 @@
-import { Product, formatPrice } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { getProductImage } from "@/lib/images";
+import type { Producto } from "@/types/database";
+import { formatPrice } from "@/types/database";
 
 type Props = {
-  product: Product;
+  product: Producto;
 };
 
 const ProductCard = ({ product }: Props) => {
   const { addItem } = useCart();
-  const outOfStock = product.stock <= 0;
+  const outOfStock = product.cantidad <= 0;
 
   return (
     <motion.div
@@ -22,12 +23,12 @@ const ProductCard = ({ product }: Props) => {
     >
       <div className="relative overflow-hidden rounded-sm bg-secondary aspect-square mb-3">
         <img
-          src={getProductImage(product.image)}
-          alt={product.name}
+          src={product.imagen_url || getProductImage("product-1")}
+          alt={product.nombre}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
-        {product.isPromotion && (
+        {product.promocion && (
           <span className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] font-body font-semibold tracking-wider uppercase px-2.5 py-1 rounded-sm">
             Promo
           </span>
@@ -49,20 +50,20 @@ const ProductCard = ({ product }: Props) => {
           </button>
         )}
       </div>
-      <h3 className="font-body text-sm font-medium text-foreground">{product.name}</h3>
+      <h3 className="font-body text-sm font-medium text-foreground">{product.nombre}</h3>
       <div className="flex items-center gap-2 mt-1">
         <span className="font-body text-sm text-accent font-medium">
-          {formatPrice(product.price)}
+          {formatPrice(product.precio)}
         </span>
-        {product.originalPrice && (
+        {product.precio_original && (
           <span className="font-body text-xs text-muted-foreground line-through">
-            {formatPrice(product.originalPrice)}
+            {formatPrice(product.precio_original)}
           </span>
         )}
       </div>
       {!outOfStock && (
         <p className="font-body text-xs text-muted-foreground mt-1">
-          {product.stock} disponibles
+          {product.cantidad} disponibles
         </p>
       )}
     </motion.div>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { products } from "@/data/products";
+import { useProductos } from "@/hooks/useProductos";
 import ProductCard from "@/components/ProductCard";
 import heroBanner from "@/assets/hero-banner.jpg";
 import { Star } from "lucide-react";
@@ -23,10 +23,11 @@ const testimonials = [
   },
 ];
 
-const featured = products.slice(0, 4);
-const promos = products.filter((p) => p.isPromotion);
-
 const Index = () => {
+  const { data: products = [] } = useProductos();
+  const featured = products.slice(0, 4);
+  const promos = products.filter((p) => p.promocion);
+
   return (
     <main>
       {/* Hero */}
